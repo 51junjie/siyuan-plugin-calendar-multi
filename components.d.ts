@@ -8,9 +8,9 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AConfigProvider: typeof import('@arco-design/web-vue')['ConfigProvider']
-    ASelect: typeof import('@arco-design/web-vue')['Select']
-    ATabPane: typeof import('@arco-design/web-vue')['TabPane']
-    ATabs: typeof import('@arco-design/web-vue')['Tabs']
+    ALayout: typeof import('@arco-design/web-vue')['Layout']
+    ALayoutContent: typeof import('@arco-design/web-vue')['LayoutContent']
+    ALayoutHeader: typeof import('@arco-design/web-vue')['LayoutHeader']
     Calendar: typeof import('./src/components/Calendar.vue')['default']
     CalendarView: typeof import('./src/components/CalendarView.vue')['default']
     ConfirmDialog: typeof import('./src/components/ConfirmDialog.vue')['default']
