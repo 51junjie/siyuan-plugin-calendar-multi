@@ -4,7 +4,7 @@
 
 一个思源笔记日历面板插件，可以快速创建日记与周记。
 
-![项目截图](https://imgs.pprain.space/2026/01/41d3d243f69952db7cf91a75d4963246.png)
+![项目截图](https://github.com/user-attachments/assets/b4bc2012-092c-4f21-9863-c5db078037b5)
 
 ## 主要功能
 
