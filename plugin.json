@@ -8,11 +8,11 @@
   "frontends": ["all"],
   "disabledInPublish": true,
   "displayName": {
-    "zh_CN": "思源日历面板",
+    "zh_CN": "思源日历面板(多日记)",
     "default": "Siyuan Calendar Panel"
   },
   "description": {
-    "zh_CN": "在日历面板上快速新建或转到日记与周记",
+    "zh_CN": "在日历面板上快速新建或转到日记与周记，支持多个日历快速切换（最多三个）",
     "default": "Quickly create a new or go to diary or weekly notes on the calendar panel"
   },
   "readme": {
