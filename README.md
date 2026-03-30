@@ -22,7 +22,7 @@
 
 ## 参考与感谢
 
-- 本项目基于 [Siyuan Arco Calendar](https://github.com/gradypark86/siyuan-plugin-calendar) 修改，非常感谢。
+- 本项目基于 [siyuan-plugin-calendar](https://github.com/gradypark86/siyuan-plugin-calendar) 修改，非常感谢。
 - 感谢使用本插件，本人为插件新手，如出现问题请海涵。欢迎提 issue 与 PR.
 
 
