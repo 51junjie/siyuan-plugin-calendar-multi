@@ -1,8 +1,8 @@
-# 思源笔记日历面板插件
+# 思源笔记日历面板插件(多日记)
 
 简体中文 \| [English](https://github.com/51junjie/siyuan-plugin-calendar-multi/blob/main/README_en_US.md)
 
-一个思源笔记日历面板插件，可以快速创建日记与周记。
+一个思源笔记日历面板插件，可以快速创建日记与周记。支持多个日记快速切换
 
 ![项目截图](https://github.com/user-attachments/assets/b4bc2012-092c-4f21-9863-c5db078037b5)
 
