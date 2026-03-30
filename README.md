@@ -1,6 +1,6 @@
 # 思源笔记日历面板插件
 
-简体中文 \| [English](https://github.com/gradypark86/siyuan-plugin-calendar/blob/main/README_en_US.md)
+简体中文 \| [English](https://github.com/51junjie/siyuan-plugin-calendar-multi/blob/main/README_en_US.md)
 
 一个思源笔记日历面板插件，可以快速创建日记与周记。
 
@@ -17,13 +17,12 @@
   - 点击日期可快速创建或跳转到该日期日记
   - 可选开启周记功能，开启后点击周号可创建相应周周记
   - 支持设置周记的创建位置与模板
+  - 支持多个日历快速切换（最多三个）
 
 
 ## 参考与感谢
 
-- 本项目基于 [Siyuan Arco Calendar](https://github.com/svchord/siyuan-arco-calendar) 修改，非常感谢。
-- 以 [Obsidian Calendar Plugin](https://github.com/liamcain/obsidian-calendar-plugin) 为蓝本补全了周记相关功能，非常感谢。
-- 本项目在 Github Copilot 协助下完成，非常感谢。
+- 本项目基于 [Siyuan Arco Calendar](https://github.com/gradypark86/siyuan-plugin-calendar) 修改，非常感谢。
 - 感谢使用本插件，本人为插件新手，如出现问题请海涵。欢迎提 issue 与 PR.
 
 

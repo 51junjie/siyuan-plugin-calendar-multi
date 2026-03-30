@@ -1,6 +1,6 @@
 ﻿# SiYuan Note Calendar Panel Plugin
 
-[简体中文](https://github.com/gradypark86/siyuan-plugin-calendar/blob/main/README.md) \| English
+[简体中文](https://github.com/51junjie/siyuan-plugin-calendar-multi/blob/main/README.md) \| English
 
 A SiYuan Note calendar panel plugin that allows for quick creation of daily and weekly notes.
 
@@ -17,12 +17,11 @@ A SiYuan Note calendar panel plugin that allows for quick creation of daily and 
   - Click on a date to quickly create or jump to that day's daily note
   - Optional weekly note feature; when enabled, click on the week number to create a corresponding weekly note
   - Supports setting the creation path and template for weekly notes
+  - Supports quick switching between multiple calendars (up to three)
 
 ## References and Thanks
 
-- This project is modified based on [Siyuan Arco Calendar](https://github.com/svchord/siyuan-arco-calendar), thank you very much.
-- The weekly note functionality was added based on the blue print of [Obsidian Calendar Plugin](https://github.com/liamcain/obsidian-calendar-plugin), thank you very much.
-- This project was completed with the assistance of GitHub Copilot, thank you very much.
+- This project is modified based on [siyuan-plugin-calendar](https://github.com/gradypark86/siyuan-plugin-calendar), thank you very much.
 - Thank you for using this plugin. Still learning the ropes of plugin development—thanks for your patience if things aren't perfect yet! Issues and PRs are welcome.
 
 ## License
