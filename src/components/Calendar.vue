@@ -13,7 +13,15 @@
             <div v-if="showYearPicker" class="picker-dropdown year-dropdown">
               <div class="year-grid">
                 <div class="year-item year-nav" @click.stop="yearGridPrev">«</div>
-                <div v-for="y in yearGridYears" :key="y" class="year-item" :class="{ 'current-year': y === displayedMonth.year() }" @click.stop="selectYear(y)">{{ y }}</div>
+                <div
+                  v-for="y in yearGridYears"
+                  :key="y"
+                  class="year-item"
+                  :class="{ 'current-year': y === displayedMonth.year() }"
+                  @click.stop="selectYear(y)"
+                >
+                  {{ y }}
+                </div>
                 <div class="year-item year-nav" @click.stop="yearGridNext">»</div>
               </div>
             </div>
@@ -41,9 +49,7 @@
       <thead>
         <tr>
           <th v-if="showWeekNum" class="week-header">{{ localeType === 'zh_CN' ? '周' : 'W' }}</th>
-          <th v-for="(dayName, index) in dayNames"
-              :key="dayName"
-              :class="{ 'weekend-header': isWeekendColumn(index) }">
+          <th v-for="(dayName, index) in dayNames" :key="dayName" :class="{ 'weekend-header': isWeekendColumn(index) }">
             {{ dayName }}
           </th>
         </tr>
@@ -60,15 +66,13 @@
             <template v-else>
               <div class="week-num">{{ week.weekNum }}</div>
             </template>
+            <div class="day-marker" v-if="existWeeklyNotesMap.has(week.weekNum)">•</div>
+            <div class="day-marker day-marker-empty" v-else></div>
           </td>
 
           <!-- 日期单元格 -->
-          <td v-for="date in week.days"
-              :key="date.format('YYYY-MM-DD')"
-              :class="getDayClasses(date)"
-              class="day-cell">
-            <div class="day-content"
-                 @click.stop="openDailyNote(date)">
+          <td v-for="date in week.days" :key="date.format('YYYY-MM-DD')" :class="getDayClasses(date)" class="day-cell">
+            <div class="day-content" @click.stop="openDailyNote(date)">
               <!-- 日期数字 -->
               <div class="day-number">{{ date.date() }}</div>
 
@@ -127,7 +131,7 @@ const months = computed(() => {
 // 年份网格（3x3 中间为当前年，首尾为翻页按钮）
 const yearGridCenter = ref(displayedMonth.value.year());
 
-watch(showYearPicker, (v) => {
+watch(showYearPicker, v => {
   if (v) {
     yearGridCenter.value = displayedMonth.value.year();
   }
@@ -193,7 +197,8 @@ const existDailyNotesMap = ref(new Map());
 const processingDates = new Set<string>();
 // 选中的日期
 const selectedDate = ref<string | null>(null);
-
+// 已存在周记的日期
+const existWeeklyNotesMap = ref(new Map());
 // ===== 计算属性 =====
 
 /**
@@ -206,11 +211,11 @@ const monthWeeks = computed(() => {
 
   // 根据 weekStart 设置确定周的开始日期 (0=Sunday, 1=Monday, etc)
   const startDay = parseInt(weekStart.value || '0', 10);
-  
+
   // 计算第一天是周几，然后回退到周开始
   let currentDate = firstDay.clone();
   const firstDayOfWeek = currentDate.day(); // 0-6 (Sunday-Saturday)
-  
+
   // 计算需要回退的天数
   let daysToSubtract = (firstDayOfWeek - startDay + 7) % 7;
   currentDate = currentDate.subtract(daysToSubtract, 'day');
@@ -238,7 +243,7 @@ const monthWeeks = computed(() => {
 
     weeks.push({
       weekNum: isoWeekNum,
-      days: weekDays
+      days: weekDays,
     });
 
     // 防止无限循环（最多10周）
@@ -256,7 +261,7 @@ const dayNames = computed(() => {
   // 中文短名（0=Sun .. 6=Sat）
   const chineseDays = ['日', '一', '二', '三', '四', '五', '六'];
   const dayNameArray = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  
+
   const result: string[] = [];
   for (let i = 0; i < 7; i++) {
     const index = (startDay + i) % 7;
@@ -266,7 +271,7 @@ const dayNames = computed(() => {
       result.push(dayNameArray[index].toUpperCase());
     }
   }
-  
+
   return result;
 });
 
@@ -329,10 +334,10 @@ function getDayClasses(date: any) {
 
   return {
     'other-month': isOtherMonth,
-    'today': isToday,
-    'weekend': isWeekend,
+    today: isToday,
+    weekend: isWeekend,
     'has-note': hasNote,
-    'selected': isSelected
+    selected: isSelected,
   };
 }
 
@@ -352,7 +357,7 @@ async function openDailyNote(date: Date) {
   const d = dayjs(date);
   const dateStr = d.format('YYYY-MM-DD');
   const isOtherMonth = !d.isSame(displayedMonth.value, 'month');
-  
+
   // 如果是点击了非本月日期，跳转到该月
   if (isOtherMonth) {
     displayedMonth.value = d;
@@ -434,6 +439,7 @@ async function openWeeklyNote(week: { weekNum: number; days: dayjs.Dayjs[] }) {
     if (typeof nb.createWeeklyNote === 'function') {
       const id = await nb.createWeeklyNote(repDay.toDate(), week.weekNum);
       if (id) {
+        getExistDate(thisPanelDate.value);
         openDoc(id);
         try {
           await api.pushMsg(formatMsg('createdWeeklyNote'), 2000);
@@ -476,6 +482,18 @@ async function getExistDate(date: Date) {
   for (const { id, dateStr } of existDailyNotes) {
     existDailyNotesMap.value.set(dateStr, id);
   }
+
+  // 清空周报日期
+  existWeeklyNotesMap.value.clear();
+  let index = 0;
+  for (const week of monthWeeks.value) {
+    notebook.value.getExistWeeklyNote(week.days[index === 0 ? 6 : 0].toDate(), week.weekNum).then(noteId => {
+      if (noteId) {
+        existWeeklyNotesMap.value.set(week.weekNum, noteId);
+      }
+    });
+    index++;
+  }
 }
 
 // ===== 侦听器 =====
@@ -487,7 +505,7 @@ watch(notebook, notebook => {
   }
 });
 
-watch(displayedMonth, (newMonth) => {
+watch(displayedMonth, newMonth => {
   thisPanelDate.value = newMonth.toDate();
 });
 
@@ -603,8 +621,12 @@ getExistDate(new Date());
     transition: opacity 0.2s;
     margin-left: 6px;
 
-    &:hover { opacity: 0.9; }
-    &:active { opacity: 0.8; }
+    &:hover {
+      opacity: 0.9;
+    }
+    &:active {
+      opacity: 0.8;
+    }
   }
 }
 
@@ -678,7 +700,6 @@ getExistDate(new Date());
   font-weight: 500;
   font-size: 12px;
   color: var(--b3-theme-primary);
-
 }
 
 /* 周号悬停效果：字体加粗 */
@@ -713,7 +734,8 @@ getExistDate(new Date());
   border-left: 2px solid var(--b3-theme-primary) !important;
 }
 
-.calendar-table td, .calendar-table th {
+.calendar-table td,
+.calendar-table th {
   padding-left: 6px; /* ensure border visible and not overlapped */
 }
 
@@ -891,7 +913,7 @@ getExistDate(new Date());
   z-index: 20;
   max-height: 300px;
   overflow: auto;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
 }
 
 .month-title {
@@ -907,8 +929,12 @@ getExistDate(new Date());
   border-radius: 3px;
   white-space: nowrap;
 }
-.month-title-part:hover { background: var(--b3-theme-surface-hover); }
-.month-title-sep { color: var(--b3-theme-on-surface); }
+.month-title-part:hover {
+  background: var(--b3-theme-surface-hover);
+}
+.month-title-sep {
+  color: var(--b3-theme-on-surface);
+}
 
 /* 年份和月份样式：加粗，年份使用主题主色 */
 .month-title-part.year-part {
@@ -971,7 +997,7 @@ getExistDate(new Date());
 
 <!-- 全局覆盖 Arco Tabs 内容顶部间距 -->
 <style>
-  .arco-tabs-content {
-    padding-top: 6px !important;
-  }
+.arco-tabs-content {
+  padding-top: 6px !important;
+}
 </style>
