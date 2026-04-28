@@ -385,13 +385,13 @@ async function openDailyNote(date: Date) {
 
   try {
     // 显示确认对话框
-    const promptMsg = `${dateStr} ${i18n.value.msg.confirmCreateDailyNote}`;
-    const ok = await confirmDialogRef.value.showConfirm(promptMsg);
+    // const promptMsg = `${dateStr} ${i18n.value.msg.confirmCreateDailyNote}`;
+    // const ok = await confirmDialogRef.value.showConfirm(promptMsg);
 
-    if (!ok) {
-      processingDates.delete(dateStr);
-      return;
-    }
+    // if (!ok) {
+    //   processingDates.delete(dateStr);
+    //   return;
+    // }
 
     // 创建日报
     try {

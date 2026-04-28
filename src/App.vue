@@ -182,7 +182,6 @@ async function removeNotebook(notebookId: NotebookId) {
 
 // 切换笔记本
 function changeNotebook(notebookId: NotebookId) {
-  console.log(notebookId);
   selectNotebookId.value = notebookId;
 }
 
