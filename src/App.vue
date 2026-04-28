@@ -281,13 +281,19 @@ function changeNotebook(notebookId: NotebookId) {
 }
 
 // 标签页标题样式
+.header{
+  padding: 6px !important;
+}
 .tab-title-box {
+  background-color: var(--b3-theme-surface);
+  padding: 0px 4px;
   display: flex;
   gap: 8px;
   overflow-x: auto;
   flex: 1;
   min-width: 0;
   flex-wrap: nowrap;
+  border-radius: 4px;
 
   &::-webkit-scrollbar {
     height: 4px;
@@ -320,35 +326,36 @@ function changeNotebook(notebookId: NotebookId) {
 
   .tab-title-text {
     cursor: pointer;
-    color: var(--b3-theme-on-surface-light);
+    color: var(--b3-theme-on-surface);
     font-size: 14px;
     transition: all 0.2s ease;
     padding: 0 2px;
 
     &:hover {
-      color: var(--b3-theme-on-surface);
+      color: var(--b3-theme-primary);
     }
   }
 
   .tab-close-btn {
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
+    padding-bottom: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
     border-radius: 50%;
     background-color: transparent;
-    color: var(--b3-theme-on-surface-light);
-    font-size: 14px;
+    color: var(--b3-theme-on-surface);
+    font-size: 12px;
     font-weight: bold;
     cursor: pointer;
     opacity: 0;
     transition: all 0.2s ease;
 
     &:hover {
-      background-color: rgba(255, 0, 0, 0.1);
-      color: #ff4d4f;
+      background-color: var(--b3-theme-primary);
+      color: white !important;
     }
   }
 
@@ -362,7 +369,7 @@ function changeNotebook(notebookId: NotebookId) {
   background-color: transparent;
 
   .tab-title-text {
-    color: var(--b3-theme-on-surface);
+    color: var(--b3-theme-primary);
     font-weight: 800;
     font-size: 16px;
   }
