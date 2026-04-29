@@ -337,9 +337,8 @@ function changeNotebook(notebookId: NotebookId) {
   }
 
   .tab-close-btn {
-    width: 12px;
-    height: 12px;
-    padding-bottom: 3px;
+    width: 16px;
+    height: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -347,15 +346,15 @@ function changeNotebook(notebookId: NotebookId) {
     border-radius: 50%;
     background-color: transparent;
     color: var(--b3-theme-on-surface);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: bold;
     cursor: pointer;
     opacity: 0;
     transition: all 0.2s ease;
 
     &:hover {
-      background-color: var(--b3-theme-primary);
-      color: white !important;
+      background-color: rgba(255, 0, 0, 0.1);
+      color: #ff4d4f !important;
     }
   }
 
