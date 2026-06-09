@@ -651,7 +651,7 @@ getExistDate(new Date());
     th {
       padding: 2px 4px;
       text-align: center;
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 600;
       color: var(--b3-theme-on-surface);
       text-transform: uppercase;
@@ -698,14 +698,14 @@ getExistDate(new Date());
   justify-content: center;
   padding: 0;
   font-weight: 500;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--b3-theme-primary);
 }
 
 /* 周号悬停效果：字体加粗 */
 .week-cell:hover .week-num,
 .week-cell:hover .week-num-btn {
-  font-weight: 800 !important;
+  font-weight: 600;
 }
 
 /* 周号悬停覆盖层（与日期区悬停效果一致） */
@@ -758,9 +758,9 @@ getExistDate(new Date());
   background: transparent;
   border: none;
   color: var(--b3-theme-primary);
-  font-weight: 600;
   cursor: pointer;
   padding: 0;
+  font-size: 14px;
 }
 
 /* 竖直分割线（可见性更好，非表格边框） */
