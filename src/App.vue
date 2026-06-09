@@ -48,6 +48,7 @@
 </template>
 
 <script lang="ts" setup>
+import { computed, ref, watch, onUnmounted } from 'vue';
 import CalendarView from '@/components/CalendarView.vue';
 import { Constants } from 'siyuan';
 import { lsNotebooks, request, pushErrMsg } from '@/api/api';
@@ -71,6 +72,8 @@ const configLocale = computed(() => {
 const cusNotebooks = ref<CusNotebook[]>([]);
 const selectNotebookId = ref<NotebookId | undefined>(undefined);
 const selectNotebookIds = ref<NotebookId[]>([]);
+const isInit = ref(false);
+const initError = ref<Error | null>(null);
 
 // 控制 select 显示/隐藏
 const showSelect = ref(false);
@@ -100,50 +103,93 @@ async function saveSelectNotebookIds() {
   });
 }
 
+// 创建笔记本 Map，提升查找性能 O(1)
+const notebookMap = computed(() => {
+  const map = new Map<NotebookId, CusNotebook>();
+  cusNotebooks.value.forEach(book => {
+    map.set(book.id, book);
+  });
+  return map;
+});
+
 // 根据笔记本 ID 获取笔记本名称
 function getNotebookName(notebookId: NotebookId): string {
-  const notebook = cusNotebooks.value.find(book => book.id === notebookId);
+  const notebook = notebookMap.value.get(notebookId);
   return notebook ? notebook.name : notebookId;
 }
 
 // 根据笔记本 ID 获取笔记本对象
 function getNotebookById(notebookId: NotebookId): CusNotebook | undefined {
-  return cusNotebooks.value.find(book => book.id === notebookId);
+  return notebookMap.value.get(notebookId);
 }
 
 async function init() {
-  const { notebooks } = await lsNotebooks();
-  const books = notebooks.filter((book: Notebook) => !book.closed);
-  for (const book of books) {
-    const cusNotebook = await CusNotebook.build(book);
-    cusNotebooks.value.push(cusNotebook);
+  if (isInit.value) {
+    return;
   }
-  const storage = await request('/api/storage/getLocalStorage');
-  if (cusNotebooks.value.map(book => book.id).includes(storage['local-dailynoteid'])) {
-    selectNotebookId.value = storage['local-dailynoteid'];
-  } else {
-    selectNotebookId.value = undefined;
-  }
-  // 读取 selectNotebookIds
-  if (storage['local-dailynoteids']) {
-    try {
-      selectNotebookIds.value = JSON.parse(storage['local-dailynoteids']);
-    } catch (e) {
-      selectNotebookIds.value = [];
+  try {
+    isInit.value = true;
+    initError.value = null;
+    
+    const { notebooks } = await lsNotebooks();
+    const books = notebooks.filter((book: Notebook) => !book.closed);
+    
+    const builtNotebooks = await Promise.all(
+      books.map(book => CusNotebook.build(book))
+    );
+    cusNotebooks.value = builtNotebooks;
+    
+    const storage = await request('/api/storage/getLocalStorage');
+    
+    if (storage['local-dailynoteid'] && 
+        cusNotebooks.value.some(book => book.id === storage['local-dailynoteid'])) {
+      selectNotebookId.value = storage['local-dailynoteid'];
+    } else {
+      selectNotebookId.value = cusNotebooks.value[0]?.id;
     }
-  } else {
-    selectNotebookIds.value = [];
+    
+    if (storage['local-dailynoteids']) {
+      try {
+        const savedIds = JSON.parse(storage['local-dailynoteids']);
+        selectNotebookIds.value = Array.isArray(savedIds) 
+          ? savedIds.filter(id => cusNotebooks.value.some(book => book.id === id))
+          : [];
+      } catch {
+        selectNotebookIds.value = [];
+      }
+    } else {
+      selectNotebookIds.value = selectNotebookId.value ? [selectNotebookId.value] : [];
+    }
+    
+    if (selectNotebookIds.value.length === 0 && selectNotebookId.value) {
+      selectNotebookIds.value = [selectNotebookId.value];
+      await saveSelectNotebookIds();
+    }
+  } catch (error) {
+    initError.value = error as Error;
+    console.error('Failed to initialize notebooks:', error);
+    if (error instanceof Error) {
+      await pushErrMsg(formatMsg('initFailed') || error.message);
+    }
+  } finally {
+    isInit.value = false;
   }
 }
 init();
 
-eventBus.value?.on('ws-main', async ({ detail }) => {
+const handleWsMain = async ({ detail }: { detail: { cmd: string } }) => {
   const { cmd } = detail;
   if (['createnotebook', 'mount', 'unmount'].includes(cmd)) {
     await refreshSql();
     cusNotebooks.value = [];
     await init();
   }
+};
+
+eventBus.value?.on('ws-main', handleWsMain);
+
+onUnmounted(() => {
+  eventBus.value?.off('ws-main', handleWsMain);
 });
 
 watch(selectNotebookId, async bookId => {
@@ -151,15 +197,6 @@ watch(selectNotebookId, async bookId => {
     await pushErrMsg(formatMsg('notNoteBook'));
     return;
   }
-  const storage = await request('/api/storage/getLocalStorage');
-  if (bookId !== storage['local-dailynoteid']) {
-    await request('/api/storage/setLocalStorageVal', {
-      app: Constants.SIYUAN_APPID,
-      key: 'local-dailynoteid',
-      val: bookId,
-    });
-  }
-  // 更新 selectNotebookIds
   if (!selectNotebookIds.value.includes(bookId)) {
     selectNotebookIds.value.push(bookId);
     await saveSelectNotebookIds();

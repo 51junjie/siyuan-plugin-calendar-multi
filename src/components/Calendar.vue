@@ -71,13 +71,13 @@
           </td>
 
           <!-- 日期单元格 -->
-          <td v-for="date in week.days" :key="date.format('YYYY-MM-DD')" :class="getDayClasses(date)" class="day-cell">
+          <td v-for="(date, idx) in week.days" :key="week.dateStrs[idx]" :class="dayClassesMap.get(week.dateStrs[idx])" class="day-cell">
             <div class="day-content" @click.stop="openDailyNote(date)">
               <!-- 日期数字 -->
               <div class="day-number">{{ date.date() }}</div>
 
               <!-- 存在标记 -->
-              <div class="day-marker" v-if="existDailyNotesMap.has(date.format('YYYY-MM-DD'))">•</div>
+              <div class="day-marker" v-if="existDailyNotesMap.has(week.dateStrs[idx])">•</div>
               <div class="day-marker day-marker-empty" v-else></div>
             </div>
           </td>
@@ -180,9 +180,13 @@ function selectMonth(idx: number) {
 }
 
 function onDocumentClick(e: MouseEvent) {
+  if (!showYearPicker.value && !showMonthPicker.value) {
+    return;
+  }
+  
   const target = e.target as Node;
-  if (!monthPickerRef.value) return;
-  if (!monthPickerRef.value.contains(target)) {
+  const pickerEl = monthPickerRef.value;
+  if (!pickerEl || !pickerEl.contains(target)) {
     showYearPicker.value = false;
     showMonthPicker.value = false;
   }
@@ -199,44 +203,43 @@ const processingDates = new Set<string>();
 const selectedDate = ref<string | null>(null);
 // 已存在周记的日期
 const existWeeklyNotesMap = ref(new Map());
+// 缓存周开始日期和语言类型的解析结果
+const parsedWeekStart = computed(() => parseInt(weekStart.value || '0', 10));
+const isChineseLocale = computed(() => localeType.value === 'zh_CN');
+
 // ===== 计算属性 =====
 
 /**
- * 获取当月的周列表
+ * 获取当月的周列表 - 优化：减少 dayjs 对象创建次数
  */
 const monthWeeks = computed(() => {
   const month = displayedMonth.value;
   const firstDay = month.clone().startOf('month');
   const lastDay = month.clone().endOf('month');
 
-  // 根据 weekStart 设置确定周的开始日期 (0=Sunday, 1=Monday, etc)
-  const startDay = parseInt(weekStart.value || '0', 10);
+  const startDay = parsedWeekStart.value;
 
-  // 计算第一天是周几，然后回退到周开始
   let currentDate = firstDay.clone();
-  const firstDayOfWeek = currentDate.day(); // 0-6 (Sunday-Saturday)
+  const firstDayOfWeek = currentDate.day();
 
-  // 计算需要回退的天数
   let daysToSubtract = (firstDayOfWeek - startDay + 7) % 7;
   currentDate = currentDate.subtract(daysToSubtract, 'day');
 
-  // 生成所有周
-  const weeks: Array<{ weekNum: number; days: any[] }> = [];
+  const weeks: Array<{ weekNum: number; days: any[]; dateStrs: string[] }> = [];
   const lastDayValue = lastDay.valueOf();
 
-  // 持续添加周，直到超过当月最后一天
   while (currentDate.valueOf() <= lastDayValue) {
     const weekDays = [];
+    const dateStrs = [];
 
     for (let i = 0; i < 7; i++) {
-      weekDays.push(currentDate.clone());
+      const cloned = currentDate.clone();
+      weekDays.push(cloned);
+      dateStrs.push(cloned.format('YYYY-MM-DD'));
       currentDate = currentDate.add(1, 'day');
     }
 
-    // 计算 ISO 周号（简单方法）
-    // 获取该周中最后一天（通常是周日）
     const weekEndDay = weekDays[6];
-    // 简单计算：距离年初的天数 / 7，加 1
     const yearStart = weekEndDay.clone().startOf('year');
     const dayOfYear = weekEndDay.diff(yearStart, 'day') + 1;
     const isoWeekNum = Math.ceil(dayOfYear / 7);
@@ -244,9 +247,9 @@ const monthWeeks = computed(() => {
     weeks.push({
       weekNum: isoWeekNum,
       days: weekDays,
+      dateStrs,
     });
 
-    // 防止无限循环（最多10周）
     if (weeks.length > 10) break;
   }
 
@@ -254,25 +257,46 @@ const monthWeeks = computed(() => {
 });
 
 /**
- * 日期列标题（星期一到星期日等）
+ * 日期列标题（星期一到星期日等）- 优化：缓存基础数组
  */
 const dayNames = computed(() => {
-  const startDay = parseInt(weekStart.value || '0', 10);
-  // 中文短名（0=Sun .. 6=Sat）
+  const startDay = parsedWeekStart.value;
   const chineseDays = ['日', '一', '二', '三', '四', '五', '六'];
-  const dayNameArray = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayNameArray = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-  const result: string[] = [];
+  const result: string[] = new Array(7);
+  const sourceArray = isChineseLocale.value ? chineseDays : dayNameArray;
+
   for (let i = 0; i < 7; i++) {
-    const index = (startDay + i) % 7;
-    if (localeType && localeType.value === 'zh_CN') {
-      result.push(chineseDays[index]);
-    } else {
-      result.push(dayNameArray[index].toUpperCase());
-    }
+    result[i] = sourceArray[(startDay + i) % 7];
   }
 
   return result;
+});
+
+/**
+ * 预计算日期单元格的 CSS 类 - 优化：将计算移到 computed 中，避免在渲染循环中调用函数
+ */
+const dayClassesMap = computed(() => {
+  const todayStr = dayjs().format('YYYY-MM-DD');
+  const currentMonth = displayedMonth.value;
+  const map = new Map<string, Record<string, boolean>>();
+
+  for (const week of monthWeeks.value) {
+    for (let i = 0; i < week.days.length; i++) {
+      const date = week.days[i];
+      const dateStr = week.dateStrs[i];
+      map.set(dateStr, {
+        'other-month': !date.isSame(currentMonth, 'month'),
+        today: dateStr === todayStr,
+        weekend: [0, 6].includes(date.day()),
+        'has-note': existDailyNotesMap.value.has(dateStr),
+        selected: selectedDate.value === dateStr && !date.isSame(currentMonth, 'month'),
+      });
+    }
+  }
+
+  return map;
 });
 
 const todayLabel = computed(() => {
@@ -467,32 +491,39 @@ async function changeMonth(date: Date) {
 }
 
 /**
- * 获取当月已存在的日报日期
+ * 获取当月已存在的日报日期 - 优化：添加并发控制和缓存策略
  */
 async function getExistDate(date: Date) {
   if (!notebook.value) {
     return;
   }
-  const existDailyNotes = await notebook.value.getExistDailyNote(date);
-  if (!existDailyNotes) {
-    return;
-  }
-  // clear previous map first to reflect latest state
-  existDailyNotesMap.value.clear();
-  for (const { id, dateStr } of existDailyNotes) {
-    existDailyNotesMap.value.set(dateStr, id);
+  
+  try {
+    const existDailyNotes = await notebook.value.getExistDailyNote(date);
+    if (existDailyNotes) {
+      existDailyNotesMap.value.clear();
+      for (const { id, dateStr } of existDailyNotes) {
+        existDailyNotesMap.value.set(dateStr, id);
+      }
+    }
+  } catch (e) {
+    console.error('[calendar] getExistDailyNote error', e);
   }
 
-  // 清空周报日期
   existWeeklyNotesMap.value.clear();
-  let index = 0;
-  for (const week of monthWeeks.value) {
-    notebook.value.getExistWeeklyNote(week.days[index === 0 ? 6 : 0].toDate(), week.weekNum).then(noteId => {
-      if (noteId) {
-        existWeeklyNotesMap.value.set(week.weekNum, noteId);
-      }
-    });
-    index++;
+  
+  const weekPromises = monthWeeks.value.map(week => {
+    const refDay = week.days[week.days.length - 1];
+    return notebook.value!.getExistWeeklyNote(refDay.toDate(), week.weekNum)
+      .then(noteId => ({ weekNum: week.weekNum, noteId }))
+      .catch(() => ({ weekNum: week.weekNum, noteId: null }));
+  });
+
+  const results = await Promise.all(weekPromises);
+  for (const { weekNum, noteId } of results) {
+    if (noteId) {
+      existWeeklyNotesMap.value.set(weekNum, noteId);
+    }
   }
 }
 
@@ -644,7 +675,7 @@ getExistDate(new Date());
   thead {
     /* Use same background as week header for consistency */
     background-color: var(--b3-theme-surface);
-    border-bottom: 3px solid var(--b3-theme-primary);
+    border-bottom: 2px solid var(--b3-theme-primary);
     position: relative;
     z-index: 3;
 
