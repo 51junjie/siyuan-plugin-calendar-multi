@@ -205,8 +205,8 @@ const selectedDate = ref<string | null>(null);
 const existWeeklyNotesMap = ref(new Map());
 // 缓存周开始日期和语言类型的解析结果
 const parsedWeekStart = computed(() => parseInt(weekStart.value || '0', 10));
-const isChineseLocale = computed(() => localeType.value === 'zh_CN');
-
+// const isChineseLocale = computed(() => localeType.value === 'zh_CN');
+const isChineseLocale = ref(true);
 // ===== 计算属性 =====
 
 /**
