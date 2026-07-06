@@ -71,7 +71,7 @@ export async function createDocWithMd(notebook: NotebookId, path: string, markdo
 
 export async function renameDoc(notebook: NotebookId, path: string, title: string): Promise<DocumentId> {
   const data = {
-    doc: notebook,
+    notebook: notebook,
     path: path,
     title: title,
   };

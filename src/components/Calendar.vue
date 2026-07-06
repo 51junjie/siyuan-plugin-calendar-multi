@@ -48,7 +48,7 @@
     <table class="calendar-table">
       <thead>
         <tr>
-          <th v-if="showWeekNum" class="week-header">{{ localeType === 'zh_CN' ? '周' : 'W' }}</th>
+          <th v-if="showWeekNum" class="week-header">{{ isChineseLocale? '周' : 'W' }}</th>
           <th v-for="(dayName, index) in dayNames" :key="dayName" :class="{ 'weekend-header': isWeekendColumn(index) }">
             {{ dayName }}
           </th>
@@ -71,7 +71,12 @@
           </td>
 
           <!-- 日期单元格 -->
-          <td v-for="(date, idx) in week.days" :key="week.dateStrs[idx]" :class="dayClassesMap.get(week.dateStrs[idx])" class="day-cell">
+          <td
+            v-for="(date, idx) in week.days"
+            :key="week.dateStrs[idx]"
+            :class="dayClassesMap.get(week.dateStrs[idx])"
+            class="day-cell"
+          >
             <div class="day-content" @click.stop="openDailyNote(date)">
               <!-- 日期数字 -->
               <div class="day-number">{{ date.date() }}</div>
@@ -93,7 +98,7 @@ import dayjs from 'dayjs';
 import * as api from '@/api/api';
 import { openDoc } from '@/api/daily-note';
 import { useLocale, formatMsg } from '@/hooks/useLocale';
-import { eventBus, weekStart, showWeekNum, weeklyEnabled, i18n } from '@/hooks/useSiYuan';
+import { eventBus, weekStart, showWeekNum, weeklyEnabled, i18n, refreshTrigger } from '@/hooks/useSiYuan';
 import { CusNotebook } from '@/utils/notebook';
 import { refreshSql } from '@/api/utils';
 import ConfirmDialog from './ConfirmDialog.vue';
@@ -183,7 +188,7 @@ function onDocumentClick(e: MouseEvent) {
   if (!showYearPicker.value && !showMonthPicker.value) {
     return;
   }
-  
+
   const target = e.target as Node;
   const pickerEl = monthPickerRef.value;
   if (!pickerEl || !pickerEl.contains(target)) {
@@ -205,8 +210,8 @@ const selectedDate = ref<string | null>(null);
 const existWeeklyNotesMap = ref(new Map());
 // 缓存周开始日期和语言类型的解析结果
 const parsedWeekStart = computed(() => parseInt(weekStart.value || '0', 10));
-// const isChineseLocale = computed(() => localeType.value === 'zh_CN');
-const isChineseLocale = ref(true);
+const isChineseLocale = computed(() => localeType.value === 'zh-CN' || localeType.value === 'zh_CN');
+
 // ===== 计算属性 =====
 
 /**
@@ -259,13 +264,13 @@ const monthWeeks = computed(() => {
 /**
  * 日期列标题（星期一到星期日等）- 优化：缓存基础数组
  */
+const chineseDays = ['日', '一', '二', '三', '四', '五', '六'];
+const dayNameArray = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const sourceArray = isChineseLocale.value ? chineseDays : dayNameArray;
+
 const dayNames = computed(() => {
   const startDay = parsedWeekStart.value;
-  const chineseDays = ['日', '一', '二', '三', '四', '五', '六'];
-  const dayNameArray = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-
   const result: string[] = new Array(7);
-  const sourceArray = isChineseLocale.value ? chineseDays : dayNameArray;
 
   for (let i = 0; i < 7; i++) {
     result[i] = sourceArray[(startDay + i) % 7];
@@ -497,7 +502,7 @@ async function getExistDate(date: Date) {
   if (!notebook.value) {
     return;
   }
-  
+
   try {
     const existDailyNotes = await notebook.value.getExistDailyNote(date);
     if (existDailyNotes) {
@@ -511,10 +516,11 @@ async function getExistDate(date: Date) {
   }
 
   existWeeklyNotesMap.value.clear();
-  
+
   const weekPromises = monthWeeks.value.map(week => {
     const refDay = week.days[week.days.length - 1];
-    return notebook.value!.getExistWeeklyNote(refDay.toDate(), week.weekNum)
+    return notebook
+      .value!.getExistWeeklyNote(refDay.toDate(), week.weekNum)
       .then(noteId => ({ weekNum: week.weekNum, noteId }))
       .catch(() => ({ weekNum: week.weekNum, noteId: null }));
   });
@@ -538,6 +544,16 @@ watch(notebook, notebook => {
 
 watch(displayedMonth, newMonth => {
   thisPanelDate.value = newMonth.toDate();
+});
+
+// 每次弹窗打开时自动刷新日期标记（由 index.ts 触发）
+watch(refreshTrigger, async () => {
+  try {
+    await refreshSql();
+  } catch (e) {
+    // ignore
+  }
+  await getExistDate(thisPanelDate.value);
 });
 
 // 监听思源笔记事件，刷新日期列表
@@ -852,7 +868,9 @@ getExistDate(new Date());
   padding: 4px 4px;
   height: 100%;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.16s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.16s ease;
   border-radius: 6px;
   box-sizing: border-box; /* include padding in height calculation so overlay matches cell */
   overflow: hidden; /* prevent overlay from overflowing the cell */

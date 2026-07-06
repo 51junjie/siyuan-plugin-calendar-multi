@@ -31,13 +31,13 @@ export function formatDate(date?: Date, sep=''): string {
  * @Ref https://github.com/siyuan-note/siyuan/issues/9807
  * @param doc_id 日记的 id
  */
-export function setCustomDNAttr(doc_id: string, date?: Date) {
+export async function setCustomDNAttr(doc_id: string, date?: Date) {
     const td = formatDate(date);
     const attr = `custom-dailynote-${td}`;
     // 构建 attr: td
     const attrs: { [key: string]: string } = {};
     attrs[attr] = td;
-    serverApi.setBlockAttrs(doc_id, attrs);
+    await serverApi.setBlockAttrs(doc_id, attrs);
 }
 
 

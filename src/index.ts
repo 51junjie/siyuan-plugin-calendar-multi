@@ -1,7 +1,7 @@
 import App from './App.vue';
 import { createApp } from 'vue';
 import { Plugin, Menu, Setting, getFrontend } from 'siyuan';
-import { app, i18n, isMobile, eventBus, position, weekStart, showWeekNum, weeklyEnabled, weeklyPath, weeklyTemplatePath } from './hooks/useSiYuan';
+import { app, i18n, isMobile, eventBus, position, weekStart, showWeekNum, weeklyEnabled, weeklyPath, weeklyTemplatePath, refreshTrigger } from './hooks/useSiYuan';
 import SySelect from './lib/SySelect.vue';
 import WeekStartSelect from './lib/WeekStartSelect.vue';
 import ShowWeekNumToggle from './lib/ShowWeekNumToggle.vue';
@@ -133,6 +133,9 @@ export default class ArcoCalendarPlugin extends Plugin {
       title: this.i18n.openCalendar,
       position: direction,
       callback: () => {
+        // 每次打开弹窗时触发刷新信号
+        refreshTrigger.value++;
+
         let rect = this.topEle.getBoundingClientRect();
         // 如果被隐藏，则使用更多按钮
         if (rect.width === 0) {

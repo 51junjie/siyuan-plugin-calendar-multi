@@ -15,3 +15,6 @@ export const showWeekNum = ref<boolean>(false);
 export const weeklyEnabled = ref<boolean>(false);
 export const weeklyPath = ref<string>('');
 export const weeklyTemplatePath = ref<string>('');
+
+// 用于触发日历刷新的计数器，每次弹窗打开时递增
+export const refreshTrigger = ref(0);

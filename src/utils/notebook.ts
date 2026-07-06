@@ -59,7 +59,7 @@ export class CusNotebook implements Notebook, NotebookConf {
     // 当前日期已有日记却无文档属性，设置后返回日记
     if (dailyNote) {
       const { id } = dailyNote;
-      setCustomDNAttr(id, date); //为新建的日记添加自定义属性
+      await setCustomDNAttr(id, date); //为新建的日记添加自定义属性
       return { id, dateStr };
     }
     // 当前日期无日记，创建日记
@@ -71,7 +71,7 @@ export class CusNotebook implements Notebook, NotebookConf {
         await api.prependBlock('dom', res.content, docID);
       }
     }
-    setCustomDNAttr(docID, date); //为新建的日记添加自定义属性
+    await setCustomDNAttr(docID, date); //为新建的日记添加自定义属性
     return { id: docID, dateStr };
   }
 
