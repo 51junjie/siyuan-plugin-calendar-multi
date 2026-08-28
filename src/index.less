@@ -28,9 +28,19 @@
 
 .b3-menu[data-name='Calendar'] {
   width: 300px !important;
+  box-sizing: border-box;
 
   .arco-select {
     margin-right: 5px !important;
+  }
+}
+
+// Keep the fullscreen calendar usable on narrow mobile viewports.
+@media (max-width: 600px) {
+  .b3-menu[data-name='Calendar'] {
+    width: calc(100vw - 4px) !important;
+    max-width: calc(100vw - 4px) !important;
+    box-sizing: border-box;
   }
 }
 

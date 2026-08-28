@@ -1,14 +1,13 @@
 import App from './App.vue';
 import { createApp } from 'vue';
-import { Plugin, Menu, Setting, getFrontend } from 'siyuan';
-import { app, i18n, isMobile, eventBus, position, weekStart, showWeekNum, weeklyEnabled, weeklyPath, weeklyTemplatePath, refreshTrigger } from './hooks/useSiYuan';
+import { Plugin, Menu, Setting, getFrontend, showMessage } from 'siyuan';
+import { app, i18n, isMobile, eventBus, pluginStorage, position, weekStart, showWeekNum, weeklyEnabled, weeklyPath, weeklyTemplatePath, refreshTrigger } from './hooks/useSiYuan';
 import SySelect from './lib/SySelect.vue';
 import WeekStartSelect from './lib/WeekStartSelect.vue';
 import ShowWeekNumToggle from './lib/ShowWeekNumToggle.vue';
 import WeeklySettings from './lib/WeeklySettings.vue';
 import WeeklyNoteGroup from './lib/WeeklyNoteGroup.vue';
 import './index.less';
-import showMessage from 'siyuan';
 
 const STORAGE_NAME = 'arco-calendar-entry';
 
@@ -20,6 +19,10 @@ export default class ArcoCalendarPlugin extends Plugin {
     i18n.value = this.i18n;
     app.value = this.app;
     eventBus.value = this.eventBus;
+    pluginStorage.value = {
+      loadData: this.loadData.bind(this),
+      saveData: this.saveData.bind(this),
+    };
     isMobile.value = ['mobile', 'browser-mobile'].includes(getFrontend());
     this.init();
   }
@@ -28,6 +31,7 @@ export default class ArcoCalendarPlugin extends Plugin {
     console.log(this.i18n.byePlugin);
     this.topEle?.remove();
     this.menuEle?.remove();
+    pluginStorage.value = undefined;
   }
 
   private async init() {
@@ -139,7 +143,8 @@ export default class ArcoCalendarPlugin extends Plugin {
         let rect = this.topEle.getBoundingClientRect();
         // 如果被隐藏，则使用更多按钮
         if (rect.width === 0) {
-          rect = document.querySelector('#barMore')!.getBoundingClientRect();
+          const barMore = document.querySelector('#barMore');
+          if (barMore) rect = barMore.getBoundingClientRect();
         }
         const menu = new Menu('Calendar');
         menu.addItem({ element: this.menuEle });

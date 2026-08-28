@@ -1,13 +1,20 @@
-import { ref } from 'vue';
+import { ref, shallowRef } from 'vue';
 import type { App, I18N, EventBus } from 'siyuan';
 
+export interface PluginStorage {
+  loadData<T = unknown>(key: string): Promise<T | null>;
+  saveData<T>(key: string, data: T): Promise<void>;
+}
+
 export const app = ref<App>({ plugins: [], appId: '' });
+export const pluginStorage = ref<PluginStorage>();
 
 export const i18n = ref<I18N>({});
 
 export const isMobile = ref<boolean>(false);
 
-export const eventBus = ref<EventBus>();
+// EventBus contains private methods and must not be wrapped in a Vue reactive Proxy.
+export const eventBus = shallowRef<EventBus>();
 
 export const position = ref();
 export const weekStart = ref<number>(1);

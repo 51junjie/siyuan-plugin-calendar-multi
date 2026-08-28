@@ -13,7 +13,7 @@ import fg from 'fast-glob';
 
 const args = minimist(process.argv.slice(2));
 const isWatch = args.watch || args.w || false;
-const devDistDir = './dev';
+const devDistDir = 'D:/SiYuan/梦子说/data/plugins/siyuan-plugin-calendar-multi';
 const distDir = isWatch ? devDistDir : './dist';
 
 console.log('isWatch=>', isWatch);

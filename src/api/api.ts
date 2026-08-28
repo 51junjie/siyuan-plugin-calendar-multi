@@ -9,16 +9,48 @@
 import { fetchSyncPost } from 'siyuan';
 import type { IWebSocketData } from 'siyuan';
 
-export async function request(url: string, data?: any) {
-  const response: IWebSocketData = await fetchSyncPost(url, data);
-  return response.code === 0 ? response.data : null;
+/** Data accepted by Siyuan's POST API. FormData is used by file endpoints. */
+export type ApiRequestData = Record<string, unknown> | FormData | string | undefined;
+
+export class SiyuanApiError extends Error {
+  readonly code: number;
+  readonly response: IWebSocketData;
+
+  constructor(url: string, response: IWebSocketData) {
+    super(response.msg || `Siyuan API request failed: ${url}`);
+    this.name = 'SiyuanApiError';
+    this.code = response.code;
+    this.response = response;
+  }
+}
+
+/**
+ * Execute a kernel API request and unwrap the standard IWebSocketData envelope.
+ * Keeping this in one place makes API errors observable to callers instead of
+ * silently turning them into null values.
+ */
+export async function request<T = any>(url: string, data: ApiRequestData = {}): Promise<T> {
+  let response: IWebSocketData;
+  try {
+    response = await fetchSyncPost(url, data);
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+
+  if (!response || typeof response.code !== 'number') {
+    throw new Error(`Invalid response from Siyuan API: ${url}`);
+  }
+  if (response.code !== 0) {
+    throw new SiyuanApiError(url, response);
+  }
+  return response.data as T;
 }
 
 // **************************************** Noteboook ****************************************
 
 export async function lsNotebooks(): Promise<IReslsNotebooks> {
   const url = '/api/notebook/lsNotebooks';
-  return request(url, '');
+  return request(url);
 }
 
 export async function openNotebook(notebook: NotebookId) {
@@ -260,7 +292,10 @@ export async function sql(sql: string): Promise<Block[] | []> {
 }
 
 export async function getBlockByID(blockId: string): Promise<Block> {
-  const sqlScript = `select * from blocks where id ='${blockId}'`;
+  // Escape the SQL literal because the kernel SQL endpoint does not support
+  // prepared parameters.
+  const escapedId = blockId.replace(/'/g, "''");
+  const sqlScript = `select * from blocks where id ='${escapedId}'`;
   const data = await sql(sqlScript);
   return data[0];
 }
@@ -283,15 +318,15 @@ export async function renderSprig(template: string): Promise<string> {
 
 // **************************************** File ****************************************
 
-export async function getFile(path: string): Promise<any> {
+export async function getFile(path: string): Promise<IWebSocketData | null> {
   const data = {
     path: path,
   };
   const url = '/api/file/getFile';
   try {
-    const file = await fetchSyncPost(url, data);
-    return file;
-  } catch (error_msg) {
+    const file: IWebSocketData = await fetchSyncPost(url, data);
+    return file?.code === 0 ? file : null;
+  } catch {
     return null;
   }
 }

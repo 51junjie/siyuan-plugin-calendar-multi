@@ -39,9 +39,12 @@
         </div>
       </a-layout-header>
       <a-layout-content>
-        <template v-for="(notebookId, index) in selectNotebookIds" :key="notebookId">
-          <CalendarView v-if="notebookId === selectNotebookId" :notebook="getNotebookById(notebookId)" />
-        </template>
+        <CalendarView
+          v-for="notebookId in selectNotebookIds"
+          :key="notebookId"
+          v-show="notebookId === selectNotebookId"
+          :notebook="getNotebookById(notebookId)"
+        />
       </a-layout-content>
     </a-layout>
   </a-config-provider>
@@ -50,12 +53,15 @@
 <script lang="ts" setup>
 import { computed, ref, watch, onUnmounted } from 'vue';
 import CalendarView from '@/components/CalendarView.vue';
-import { Constants } from 'siyuan';
-import { lsNotebooks, request, pushErrMsg } from '@/api/api';
+import { lsNotebooks, pushErrMsg } from '@/api/api';
 import { useLocale, formatMsg } from '@/hooks/useLocale';
-import { eventBus, i18n, weekStart } from '@/hooks/useSiYuan';
+import { eventBus, i18n, pluginStorage, weekStart } from '@/hooks/useSiYuan';
 import { CusNotebook } from '@/utils/notebook';
 import { refreshSql } from './api/utils';
+
+const STORAGE_KEY = 'arco-calendar-entry';
+const SELECTED_NOTEBOOK_KEY = 'selectedNotebookId';
+const SELECTED_NOTEBOOKS_KEY = 'selectedNotebookIds';
 
 const { locale, localeType } = useLocale();
 
@@ -96,11 +102,10 @@ function handleSelectChange() {
 
 // 保存 selectNotebookIds 到 storage
 async function saveSelectNotebookIds() {
-  await request('/api/storage/setLocalStorageVal', {
-    app: Constants.SIYUAN_APPID,
-    key: 'local-dailynoteids',
-    val: JSON.stringify(selectNotebookIds.value),
-  });
+  if (!pluginStorage.value) return;
+  const data = (await pluginStorage.value.loadData<Record<string, unknown>>(STORAGE_KEY)) || {};
+  data[SELECTED_NOTEBOOKS_KEY] = selectNotebookIds.value;
+  await pluginStorage.value.saveData(STORAGE_KEY, data);
 }
 
 // 创建笔记本 Map，提升查找性能 O(1)
@@ -139,21 +144,21 @@ async function init() {
     );
     cusNotebooks.value = builtNotebooks;
     
-    const storage = await request('/api/storage/getLocalStorage');
+    const storage = (await pluginStorage.value?.loadData<Record<string, unknown>>(STORAGE_KEY)) || {};
     
-    if (storage['local-dailynoteid'] && 
-        cusNotebooks.value.some(book => book.id === storage['local-dailynoteid'])) {
-      selectNotebookId.value = storage['local-dailynoteid'];
+    const savedNotebookId = storage[SELECTED_NOTEBOOK_KEY];
+    if (typeof savedNotebookId === 'string' && cusNotebooks.value.some(book => book.id === savedNotebookId)) {
+      selectNotebookId.value = savedNotebookId;
     } else {
       selectNotebookId.value = cusNotebooks.value[0]?.id;
     }
     
-    if (storage['local-dailynoteids']) {
+    if (Array.isArray(storage[SELECTED_NOTEBOOKS_KEY])) {
       try {
-        const savedIds = JSON.parse(storage['local-dailynoteids']);
-        selectNotebookIds.value = Array.isArray(savedIds) 
-          ? savedIds.filter(id => cusNotebooks.value.some(book => book.id === id))
-          : [];
+        const savedIds = storage[SELECTED_NOTEBOOKS_KEY];
+        selectNotebookIds.value = savedIds.filter(
+          (id): id is string => typeof id === 'string' && cusNotebooks.value.some(book => book.id === id)
+        );
       } catch {
         selectNotebookIds.value = [];
       }
